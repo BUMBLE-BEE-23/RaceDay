@@ -1,0 +1,37 @@
+name: RaceDay CI
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Validate repository structure
+        shell: bash
+        run: |
+          test -d docs
+          test -f README.md
+          test -f docs/RaceDay-ERD.png
+          test -f docs/endpoint-plan.md
+          test -f docs/RaceDay-Database.sql
+          echo "RaceDay repository structure is valid."
+
+      - name: Validate SQL file exists
+        shell: bash
+        run: |
+          test -s docs/RaceDay-Database.sql
+          echo "SQL script is present and not empty."
+
+      - name: Validate endpoint plan exists
+        shell: bash
+        run: |
+          test -s docs/endpoint-plan.md
+          echo "API endpoint plan is present and not empty."
