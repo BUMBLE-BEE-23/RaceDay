@@ -183,9 +183,11 @@ An unlisted YouTube video will be provided demonstrating:
 - The SQL script being executed in SQL Server Management Studio
 
 ### YouTube Video
+## Video Presentation
 
-_Add YouTube video link here._
+An unlisted YouTube presentation demonstrating the RaceDay Part 1 planning, ERD, API endpoint plan, SQL Server database, and CI/CD setup is available below:
 
+https://youtu.be/YYzX46cWQPE?si=88JKjWftkSXpd6Rv 
 ---
 
 ## 12. Project Status
