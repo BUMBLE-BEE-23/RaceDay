@@ -1,37 +1,39 @@
+
 name: RaceDay CI
 
 on:
   push:
-    branches: [ main ]
+    branches: [ main, part2-rest-api ]
   pull_request:
-    branches: [ main ]
+    branches: [ main, part2-rest-api ]
 
 jobs:
-  validate:
+  build-and-test:
     runs-on: ubuntu-latest
 
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Validate repository structure
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'
+
+      - name: Validate Part 1 documentation
         shell: bash
         run: |
-          test -d docs
           test -f README.md
           test -f docs/RaceDay-ERD.png
           test -f docs/endpoint-plan.md
           test -f docs/RaceDay-Database.sql
-          echo "RaceDay repository structure is valid."
+          test -f docs/CI-CD-Success.png
 
-      - name: Validate SQL file exists
-        shell: bash
-        run: |
-          test -s docs/RaceDay-Database.sql
-          echo "SQL script is present and not empty."
+      - name: Restore API dependencies
+        run: dotnet restore Part2/RaceDay.API/RaceDay.API.csproj
 
-      - name: Validate endpoint plan exists
-        shell: bash
-        run: |
-          test -s docs/endpoint-plan.md
-          echo "API endpoint plan is present and not empty."
+      - name: Build API
+        run: dotnet build Part2/RaceDay.API/RaceDay.API.csproj --configuration Release --no-restore
+
+      - name: Run unit tests
+        run: dotnet test Part2/RaceDay.Tests/RaceDay.Tests.csproj --configuration Release --verbosity normal
