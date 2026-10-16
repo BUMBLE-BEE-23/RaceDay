@@ -61,5 +61,12 @@ public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options
 
         modelBuilder.Entity<User>().Property(x => x.Role).HasMaxLength(20).IsRequired();
         modelBuilder.Entity<Event>().Property(x => x.EventType).HasMaxLength(20).IsRequired();
+        modelBuilder.Entity<Event>()
+    .Property(x => x.DistanceKm)
+    .HasPrecision(6, 2);
+
+        modelBuilder.Entity<Category>()
+            .Property(x => x.DistanceKm)
+            .HasPrecision(6, 2);
     }
 }
