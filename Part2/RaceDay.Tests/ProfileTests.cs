@@ -17,7 +17,6 @@ public class ProfileTests
     {
         await using var db = await CreateDatabase();
         var user = await CreateUser(db);
-
         var controller = CreateController(db, user.Id);
 
         var response = await controller.GetMyProfile();
@@ -48,7 +47,6 @@ public class ProfileTests
         var user = await CreateUser(db);
         var originalEmail = user.Email;
         var originalRole = user.Role;
-
         var controller = CreateController(db, user.Id);
 
         var response = await controller.UpdateMyProfile(
@@ -91,13 +89,60 @@ public class ProfileTests
         Assert.IsType<NotFoundResult>(response.Result);
     }
 
-    private static async Task<ApplicationDbContext> CreateDatabase()
+    [Fact]
+    public async Task UpdateMyProfile_TrimsWhitespaceFromNames()
+    {
+        await using var db = await CreateDatabase();
+        var user = await CreateUser(db);
+        var controller = CreateController(db, user.Id);
+
+        var response = await controller.UpdateMyProfile(
+            new UpdateProfileRequest
+            {
+                FirstName = "  Alex  ",
+                LastName = "  Smith  ",
+                PhoneNumber = "  0712345678  "
+            });
+
+        var ok = Assert.IsType<OkObjectResult>(response.Result);
+        var profile = Assert.IsType<UserResponse>(ok.Value);
+
+        Assert.Equal("Alex", profile.FirstName);
+        Assert.Equal("Smith", profile.LastName);
+        Assert.Equal("0712345678", profile.PhoneNumber);
+    }
+
+    [Fact]
+    public async Task UpdateMyProfile_NullPhoneNumber_KeepsPhoneNumberNull()
+    {
+        await using var db = await CreateDatabase();
+        var user = await CreateUser(db);
+        var controller = CreateController(db, user.Id);
+
+        var response = await controller.UpdateMyProfile(
+            new UpdateProfileRequest
+            {
+                FirstName = "Alex",
+                LastName = "Smith",
+                PhoneNumber = null
+            });
+
+        var ok = Assert.IsType<OkObjectResult>(response.Result);
+        var profile = Assert.IsType<UserResponse>(ok.Value);
+
+        Assert.Null(profile.PhoneNumber);
+
+        var saved = await db.Users.SingleAsync(x => x.Id == user.Id);
+        Assert.Null(saved.PhoneNumber);
+    }
+
+    private static Task<ApplicationDbContext> CreateDatabase()
     {
         var options = new DbContextOptionsBuilder<ApplicationDbContext>()
             .UseInMemoryDatabase(Guid.NewGuid().ToString())
             .Options;
 
-        return new ApplicationDbContext(options);
+        return Task.FromResult(new ApplicationDbContext(options));
     }
 
     private static async Task<User> CreateUser(
