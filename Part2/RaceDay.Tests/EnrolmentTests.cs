@@ -1,4 +1,5 @@
-﻿
+﻿using System;
+using System.Linq;
 using System.Security.Claims;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
@@ -87,6 +88,24 @@ public class EnrolmentTests
     }
 
     [Fact]
+    public async Task ParticipantCannotEnrolInNonexistentEvent()
+    {
+        var seed = await CreateDatabase();
+        await using var db = seed.Db;
+
+        var controller = CreateParticipantController(db, seed.ParticipantId);
+
+        var result = await controller.Enrol(new EnrolmentRequest
+        {
+            EventId = 99999,
+            CategoryId = seed.CategoryId
+        });
+
+        Assert.IsType<NotFoundObjectResult>(result.Result);
+        Assert.Empty(await db.EventEnrolments.ToListAsync());
+    }
+
+    [Fact]
     public void EnrolmentEndpointRequiresParticipantRole()
     {
         var method = typeof(EnrolmentsController)
@@ -171,9 +190,7 @@ public class EnrolmentTests
             EventDate = DateTime.UtcNow.AddDays(7),
             Location = "Johannesburg",
             DistanceKm = 5m,
-            EventType = UserRoles.Participant == "Participant"
-                ? "Run"
-                : "Run",
+            EventType = "Run",
             OrganiserId = organiser.Id
         };
 
