@@ -1,4 +1,4 @@
-# RaceDay System
+﻿# RaceDay System
 
 ## 1. System Description
 
@@ -140,7 +140,7 @@ To run the tests from the repository root:
 dotnet test Part2/RaceDay.Tests/RaceDay.Tests.csproj --configuration Release
 ```
 
-The latest reported local test run passed **13 tests with zero failures**.
+The latest reported local test run passed **46 tests with zero failures**.
 
 ## 9. Continuous Integration and Continuous Delivery (CI/CD)
 
@@ -152,7 +152,7 @@ The workflow checks that required Part 1 documentation exists, restores API depe
 
 The workflow runs on pushes and pull requests targeting the `main` and `part2-rest-api` branches.
 
-The latest reported local build and test run succeeded. The GitHub Actions result should also be checked before final submission.
+The latest reported local Release build and automated test run succeeded, with **46 tests passing and zero failures**. The final GitHub Actions result must be verified before submission.
 
 ### Part 1 CI/CD Screenshot
 
@@ -173,9 +173,9 @@ Important Part 1 documents:
 
 Important Part 2 folders:
 
-- `Part2/RaceDay.API` — ASP.NET Core Web API, models, controllers, database context and migrations.
-- `Part2/RaceDay.Tests` — automated unit tests.
-- `.github/workflows` — GitHub Actions CI/CD workflow.
+- `Part2/RaceDay.API` â€” ASP.NET Core Web API, models, controllers, database context and migrations.
+- `Part2/RaceDay.Tests` â€” automated unit tests.
+- `.github/workflows` â€” GitHub Actions CI/CD workflow.
 
 ## 11. Video Presentation
 
@@ -195,7 +195,7 @@ A separate Part 2 demonstration should show the running API, Swagger endpoints, 
 
 ## 12. Project Status
 
-### Part 1 — System Planning and Database
+### Part 1 â€” System Planning and Database
 
 - [x] Project folder structure created.
 - [x] Entity Relationship Diagram completed.
@@ -206,7 +206,7 @@ A separate Part 2 demonstration should show the running API, Swagger endpoints, 
 - [x] CI/CD success screenshot documented.
 - [x] Part 1 presentation uploaded.
 
-### Part 2 — RESTful API Development
+### Part 2 â€” RESTful API Development
 
 - [x] ASP.NET Core Web API project created.
 - [x] Entity Framework Core SQL Server integration configured.
@@ -235,3 +235,4 @@ RaceDay is being developed as a role-based race event management system using AS
 Part 1 established the system design, database plan and RESTful API specification. Part 2 implements the API endpoints, authentication, role-based access control, database integration, automated testing and continuous integration workflow.
 
 The project structure supports further development of the RaceDay system in subsequent assessment stages.
+
