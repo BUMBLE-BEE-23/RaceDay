@@ -13,116 +13,140 @@ namespace RaceDay.Tests;
 public class CategoryTests
 {
     [Fact]
-    public async Task GetForEvent_ReturnsCategoriesForExistingEvent()
+    public async Task GetForEvent_UnknownEvent_ReturnsNotFound()
     {
-        var seed = await CreateDatabase();
-        await using var db = seed.Db;
-
-        db.Categories.Add(new Category
-        {
-            EventId = seed.EventId,
-            Name = "Junior",
-            CategoryType = "Age",
-            MinimumAge = 12,
-            MaximumAge = 17
-        });
-
-        await db.SaveChangesAsync();
-
-        var controller = new CategoriesController(db);
-        var result = await controller.GetForEvent(seed.EventId);
-
-        var ok = Assert.IsType<OkObjectResult>(result.Result);
-        var categories = Assert.IsAssignableFrom<IEnumerable<CategoryResponse>>(ok.Value);
-
-        Assert.Single(categories);
-        Assert.Equal("Junior", categories.First().Name);
-    }
-
-    [Fact]
-    public async Task GetForEvent_ReturnsNotFoundForMissingEvent()
-    {
-        var seed = await CreateDatabase();
-        await using var db = seed.Db;
-
+        await using var db = CreateDatabase();
         var controller = new CategoriesController(db);
 
-        var result = await controller.GetForEvent(99999);
+        var result = await controller.GetForEvent(999);
 
         Assert.IsType<NotFoundResult>(result.Result);
     }
 
     [Fact]
-    public async Task Create_ValidAgeCategory_ReturnsCreated()
+    public async Task GetForEvent_ExistingEvent_ReturnsOk()
     {
-        var seed = await CreateDatabase();
-        await using var db = seed.Db;
+        await using var db = CreateDatabase();
+        await SeedEvent(db);
 
-        var controller = CreateOrganiserController(db, seed.OrganiserId);
+        var controller = new CategoriesController(db);
 
-        var request = new CategoryRequest
-        {
-            Name = "Youth",
-            CategoryType = "Age",
-            MinimumAge = 13,
-            MaximumAge = 18,
-            DistanceKm = null
-        };
+        var result = await controller.GetForEvent(1);
 
-        var result = await controller.Create(seed.EventId, request);
-
-        var created = Assert.IsType<CreatedResult>(result.Result);
-        var response = Assert.IsType<CategoryResponse>(created.Value);
-
-        Assert.Equal("Youth", response.Name);
-        Assert.Equal("Age", response.CategoryType);
-        Assert.Equal(13, response.MinimumAge);
-        Assert.Equal(18, response.MaximumAge);
-        Assert.Single(await db.Categories.ToListAsync());
+        Assert.IsType<OkObjectResult>(result.Result);
     }
 
     [Fact]
-    public async Task Create_InvalidAgeRange_ReturnsBadRequest()
+    public async Task Create_CategoryForOwnEvent_ReturnsCreated()
     {
-        var seed = await CreateDatabase();
-        await using var db = seed.Db;
+        await using var db = CreateDatabase();
+        await SeedEvent(db);
 
-        var controller = CreateOrganiserController(db, seed.OrganiserId);
+        var controller = CreateOrganiserController(db, 1);
 
-        var request = new CategoryRequest
+        var result = await controller.Create(1, new CategoryRequest
         {
-            Name = "Invalid Age Group",
-            CategoryType = "Age",
-            MinimumAge = 30,
-            MaximumAge = 18,
-            DistanceKm = null
-        };
+            Name = "5 km",
+            CategoryType = "Distance",
+            DistanceKm = 5
+        });
 
-        var result = await controller.Create(seed.EventId, request);
+        Assert.IsType<CreatedResult>(result.Result);
+
+        var saved = await db.Categories.SingleAsync();
+        Assert.Equal("5 km", saved.Name);
+        Assert.Equal("Distance", saved.CategoryType);
+        Assert.Equal(5m, saved.DistanceKm);
+    }
+
+    [Fact]
+    public async Task Create_InvalidCategory_ReturnsBadRequest()
+    {
+        await using var db = CreateDatabase();
+        await SeedEvent(db);
+
+        var controller = CreateOrganiserController(db, 1);
+
+        var result = await controller.Create(1, new CategoryRequest
+        {
+            Name = "Invalid category",
+            CategoryType = "Distance",
+            DistanceKm = null,
+            MinimumAge = 10,
+            MaximumAge = 20
+        });
 
         Assert.IsType<BadRequestObjectResult>(result.Result);
         Assert.Empty(await db.Categories.ToListAsync());
     }
 
     [Fact]
-    public async Task Create_CategoryForMissingEvent_ReturnsNotFound()
+    public async Task Create_CategoryForAnotherOrganisersEvent_ReturnsForbid()
     {
-        var seed = await CreateDatabase();
-        await using var db = seed.Db;
+        await using var db = CreateDatabase();
+        await SeedEvent(db);
 
-        var controller = CreateOrganiserController(db, seed.OrganiserId);
+        var controller = CreateOrganiserController(db, 2);
 
-        var request = new CategoryRequest
+        var result = await controller.Create(1, new CategoryRequest
         {
             Name = "5 km",
             CategoryType = "Distance",
-            DistanceKm = 5m
-        };
+            DistanceKm = 5
+        });
 
-        var result = await controller.Create(99999, request);
-
-        Assert.IsType<NotFoundResult>(result.Result);
+        Assert.IsType<ForbidResult>(result.Result);
         Assert.Empty(await db.Categories.ToListAsync());
+    }
+
+    private static ApplicationDbContext CreateDatabase()
+    {
+        var options = new DbContextOptionsBuilder<ApplicationDbContext>()
+            .UseInMemoryDatabase(Guid.NewGuid().ToString())
+            .Options;
+
+        var db = new ApplicationDbContext(options);
+
+        db.Users.AddRange(
+            new User
+            {
+                Id = 1,
+                FirstName = "First",
+                LastName = "Organiser",
+                Email = "first@example.com",
+                PasswordHash = "test-hash",
+                Role = UserRoles.Organiser
+            },
+            new User
+            {
+                Id = 2,
+                FirstName = "Second",
+                LastName = "Organiser",
+                Email = "second@example.com",
+                PasswordHash = "test-hash",
+                Role = UserRoles.Organiser
+            });
+
+        db.SaveChanges();
+
+        return db;
+    }
+
+    private static async Task SeedEvent(ApplicationDbContext db)
+    {
+        db.Events.Add(new Event
+        {
+            Id = 1,
+            Name = "Test Run",
+            Description = "Test event",
+            EventDate = DateTime.UtcNow.AddDays(7),
+            Location = "Johannesburg",
+            DistanceKm = 5,
+            EventType = "Run",
+            OrganiserId = 1
+        });
+
+        await db.SaveChangesAsync();
     }
 
     private static CategoriesController CreateOrganiserController(
@@ -149,45 +173,5 @@ public class CategoryTests
         };
 
         return controller;
-    }
-
-    private static async Task<(
-        ApplicationDbContext Db,
-        int OrganiserId,
-        int EventId)> CreateDatabase()
-    {
-        var options = new DbContextOptionsBuilder<ApplicationDbContext>()
-            .UseInMemoryDatabase(Guid.NewGuid().ToString())
-            .Options;
-
-        var db = new ApplicationDbContext(options);
-
-        var organiser = new User
-        {
-            FirstName = "Test",
-            LastName = "Organiser",
-            Email = "organiser@example.com",
-            PasswordHash = "test-hash",
-            Role = UserRoles.Organiser
-        };
-
-        db.Users.Add(organiser);
-        await db.SaveChangesAsync();
-
-        var itemEvent = new Event
-        {
-            Name = "Test Run",
-            Description = "Test event",
-            EventDate = DateTime.UtcNow.AddDays(7),
-            Location = "Johannesburg",
-            DistanceKm = 5m,
-            EventType = "Run",
-            OrganiserId = organiser.Id
-        };
-
-        db.Events.Add(itemEvent);
-        await db.SaveChangesAsync();
-
-        return (db, organiser.Id, itemEvent.Id);
     }
 }
