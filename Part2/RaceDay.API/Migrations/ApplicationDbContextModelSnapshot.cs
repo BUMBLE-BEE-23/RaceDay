@@ -36,7 +36,8 @@ namespace RaceDay.API.Migrations
                         .HasColumnType("nvarchar(30)");
 
                     b.Property<decimal?>("DistanceKm")
-                        .HasColumnType("decimal(18,2)");
+                        .HasPrecision(6, 2)
+                        .HasColumnType("decimal(6,2)");
 
                     b.Property<int>("EventId")
                         .HasColumnType("int");
@@ -73,7 +74,8 @@ namespace RaceDay.API.Migrations
                         .HasColumnType("nvarchar(2000)");
 
                     b.Property<decimal>("DistanceKm")
-                        .HasColumnType("decimal(18,2)");
+                        .HasPrecision(6, 2)
+                        .HasColumnType("decimal(6,2)");
 
                     b.Property<DateTime>("EventDate")
                         .HasColumnType("datetime2");
