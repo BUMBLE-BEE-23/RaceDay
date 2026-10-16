@@ -1,6 +1,8 @@
+
 using System.Security.Claims;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using RaceDay.API.Controllers;
@@ -15,31 +17,36 @@ public class AuthAndAccessTests
     [Fact]
     public void PasswordHashing_VerifiesCorrectPassword()
     {
-        var hasher = new Microsoft.AspNetCore.Identity.PasswordHasher<User>();
-
-        var user = new User
-        {
-            FirstName = "Test",
-            LastName = "User",
-            Email = "test@example.com",
-            Role = "Participant"
-        };
+        var hasher = new PasswordHasher<User>();
+        var user = CreateUser("test@example.com", UserRoles.Participant);
 
         var hash = hasher.HashPassword(user, "RaceDay123!");
-        var result = hasher.VerifyHashedPassword(user, hash, "RaceDay123!");
+
+        Assert.NotEqual("RaceDay123!", hash);
+        Assert.Equal(
+            PasswordVerificationResult.Success,
+            hasher.VerifyHashedPassword(user, hash, "RaceDay123!"));
+    }
+
+    [Fact]
+    public void PasswordHashing_RejectsIncorrectPassword()
+    {
+        var hasher = new PasswordHasher<User>();
+        var user = CreateUser("test@example.com", UserRoles.Participant);
+        user.PasswordHash = hasher.HashPassword(user, "CorrectPass123!");
 
         Assert.Equal(
-            Microsoft.AspNetCore.Identity.PasswordVerificationResult.Success,
-            result);
+            PasswordVerificationResult.Failed,
+            hasher.VerifyHashedPassword(
+                user, user.PasswordHash, "WrongPass123!"));
     }
 
     [Theory]
-    [InlineData("CreateEvent", "Organiser")]
-    [InlineData("UpdateEvent", "Organiser")]
-    [InlineData("DeleteEvent", "Organiser")]
+    [InlineData("CreateEvent", UserRoles.Organiser)]
+    [InlineData("UpdateEvent", UserRoles.Organiser)]
+    [InlineData("DeleteEvent", UserRoles.Organiser)]
     public void EventManagement_RequiresOrganiserRole(
-        string actionName,
-        string expectedRole)
+        string actionName, string expectedRole)
     {
         var method = typeof(EventsController).GetMethod(actionName);
 
@@ -56,31 +63,14 @@ public class AuthAndAccessTests
     [Fact]
     public async Task EventCreation_RejectsUnsupportedEventType()
     {
-        var options = new DbContextOptionsBuilder<ApplicationDbContext>()
-            .UseInMemoryDatabase(Guid.NewGuid().ToString())
-            .Options;
+        await using var db = CreateDatabase();
+        var organiser = CreateUser("organiser@example.com", UserRoles.Organiser);
+        db.Users.Add(organiser);
+        await db.SaveChangesAsync();
 
-        await using var db = new ApplicationDbContext(options);
+        var controller = CreateEventsController(db, organiser.Id);
 
-        var controller = new EventsController(db);
-
-        var identity = new ClaimsIdentity(
-            new[]
-            {
-                new Claim(ClaimTypes.NameIdentifier, "1"),
-                new Claim(ClaimTypes.Role, "Organiser")
-            },
-            "TestAuthentication");
-
-        controller.ControllerContext = new ControllerContext
-        {
-            HttpContext = new DefaultHttpContext
-            {
-                User = new ClaimsPrincipal(identity)
-            }
-        };
-
-        var request = new EventRequest
+        var result = await controller.CreateEvent(new EventRequest
         {
             Name = "Test Event",
             Description = "Description",
@@ -88,23 +78,17 @@ public class AuthAndAccessTests
             Location = "Johannesburg",
             DistanceKm = 5,
             EventType = "Flying"
-        };
-
-        var result = await controller.CreateEvent(request);
+        });
 
         Assert.IsType<BadRequestObjectResult>(result.Result);
-
+        Assert.Empty(await db.Events.ToListAsync());
     }
 
     [Fact]
     public async Task Register_ValidRequest_StoresHashedPassword()
     {
-        var options = new DbContextOptionsBuilder<ApplicationDbContext>()
-            .UseInMemoryDatabase(Guid.NewGuid().ToString())
-            .Options;
-
-        await using var db = new ApplicationDbContext(options);
-        var hasher = new Microsoft.AspNetCore.Identity.PasswordHasher<User>();
+        await using var db = CreateDatabase();
+        var hasher = new PasswordHasher<User>();
         var controller = new AuthController(db, hasher);
 
         var request = new RegisterRequest
@@ -113,7 +97,7 @@ public class AuthAndAccessTests
             LastName = "Participant",
             Email = "participant@example.com",
             Password = "SecurePass123!",
-            Role = "Participant"
+            Role = UserRoles.Participant
         };
 
         var result = await controller.Register(request);
@@ -124,9 +108,8 @@ public class AuthAndAccessTests
             u => u.Email == "participant@example.com");
 
         Assert.NotEqual(request.Password, savedUser.PasswordHash);
-
         Assert.Equal(
-            Microsoft.AspNetCore.Identity.PasswordVerificationResult.Success,
+            PasswordVerificationResult.Success,
             hasher.VerifyHashedPassword(
                 savedUser, savedUser.PasswordHash, request.Password));
     }
@@ -134,45 +117,29 @@ public class AuthAndAccessTests
     [Fact]
     public async Task Register_InvalidRole_ReturnsBadRequest()
     {
-        var options = new DbContextOptionsBuilder<ApplicationDbContext>()
-            .UseInMemoryDatabase(Guid.NewGuid().ToString())
-            .Options;
+        await using var db = CreateDatabase();
+        var controller = new AuthController(db, new PasswordHasher<User>());
 
-        await using var db = new ApplicationDbContext(options);
-        var hasher = new Microsoft.AspNetCore.Identity.PasswordHasher<User>();
-        var controller = new AuthController(db, hasher);
-
-        var request = new RegisterRequest
+        var result = await controller.Register(new RegisterRequest
         {
             FirstName = "Test",
             LastName = "User",
             Email = "admin@example.com",
             Password = "SecurePass123!",
             Role = "Administrator"
-        };
-
-        var result = await controller.Register(request);
+        });
 
         Assert.IsType<BadRequestObjectResult>(result.Result);
+        Assert.Empty(await db.Users.ToListAsync());
     }
 
     [Fact]
     public async Task Register_DuplicateEmail_ReturnsConflict()
     {
-        var options = new DbContextOptionsBuilder<ApplicationDbContext>()
-            .UseInMemoryDatabase(Guid.NewGuid().ToString())
-            .Options;
-
-        await using var db = new ApplicationDbContext(options);
-        var hasher = new Microsoft.AspNetCore.Identity.PasswordHasher<User>();
-
-        var existingUser = new User
-        {
-            FirstName = "Existing",
-            LastName = "Participant",
-            Email = "existing@example.com",
-            Role = "Participant"
-        };
+        await using var db = CreateDatabase();
+        var hasher = new PasswordHasher<User>();
+        var existingUser = CreateUser(
+            "existing@example.com", UserRoles.Participant);
 
         existingUser.PasswordHash =
             hasher.HashPassword(existingUser, "SecurePass123!");
@@ -182,41 +149,26 @@ public class AuthAndAccessTests
 
         var controller = new AuthController(db, hasher);
 
-        var request = new RegisterRequest
+        var result = await controller.Register(new RegisterRequest
         {
             FirstName = "Another",
             LastName = "Participant",
-            Email = "existing@example.com",
+            Email = "EXISTING@example.com",
             Password = "AnotherPass123!",
-            Role = "Participant"
-        };
-
-        var result = await controller.Register(request);
+            Role = UserRoles.Participant
+        });
 
         Assert.IsType<ConflictObjectResult>(result.Result);
-        Assert.Equal(1, await db.Users.CountAsync());
+        Assert.Single(await db.Users.ToListAsync());
     }
 
     [Fact]
     public async Task Login_WrongPassword_ReturnsUnauthorized()
     {
-        var options = new DbContextOptionsBuilder<ApplicationDbContext>()
-            .UseInMemoryDatabase(Guid.NewGuid().ToString())
-            .Options;
-
-        await using var db = new ApplicationDbContext(options);
-        var hasher = new Microsoft.AspNetCore.Identity.PasswordHasher<User>();
-
-        var user = new User
-        {
-            FirstName = "Test",
-            LastName = "Participant",
-            Email = "login@example.com",
-            Role = "Participant"
-        };
-
-        user.PasswordHash =
-            hasher.HashPassword(user, "CorrectPass123!");
+        await using var db = CreateDatabase();
+        var hasher = new PasswordHasher<User>();
+        var user = CreateUser("login@example.com", UserRoles.Participant);
+        user.PasswordHash = hasher.HashPassword(user, "CorrectPass123!");
 
         db.Users.Add(user);
         await db.SaveChangesAsync();
@@ -232,4 +184,64 @@ public class AuthAndAccessTests
         Assert.IsType<UnauthorizedObjectResult>(result.Result);
     }
 
+    [Fact]
+    public async Task Login_UnknownEmail_ReturnsUnauthorized()
+    {
+        await using var db = CreateDatabase();
+        var controller = new AuthController(
+            db, new PasswordHasher<User>());
+
+        var result = await controller.Login(new LoginRequest
+        {
+            Email = "missing@example.com",
+            Password = "SecurePass123!"
+        });
+
+        Assert.IsType<UnauthorizedObjectResult>(result.Result);
+    }
+
+    private static ApplicationDbContext CreateDatabase()
+    {
+        var options = new DbContextOptionsBuilder<ApplicationDbContext>()
+            .UseInMemoryDatabase(Guid.NewGuid().ToString())
+            .Options;
+
+        return new ApplicationDbContext(options);
+    }
+
+    private static User CreateUser(string email, string role)
+    {
+        return new User
+        {
+            FirstName = "Test",
+            LastName = "User",
+            Email = email,
+            PasswordHash = "test-hash",
+            Role = role
+        };
+    }
+
+    private static EventsController CreateEventsController(
+        ApplicationDbContext db, int organiserId)
+    {
+        var controller = new EventsController(db);
+
+        var identity = new ClaimsIdentity(
+            new[]
+            {
+                new Claim(ClaimTypes.NameIdentifier, organiserId.ToString()),
+                new Claim(ClaimTypes.Role, UserRoles.Organiser)
+            },
+            "TestAuthentication");
+
+        controller.ControllerContext = new ControllerContext
+        {
+            HttpContext = new DefaultHttpContext
+            {
+                User = new ClaimsPrincipal(identity)
+            }
+        };
+
+        return controller;
+    }
 }
