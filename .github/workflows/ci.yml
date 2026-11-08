@@ -3,9 +3,9 @@ name: RaceDay CI
 
 on:
   push:
-    branches: [ main, part2-rest-api ]
+    branches: [ main, part2-rest-api, part3-mvc ]
   pull_request:
-    branches: [ main, part2-rest-api ]
+    branches: [ main, part2-rest-api, part3-mvc ]
 
 jobs:
   build-and-test:
@@ -29,11 +29,17 @@ jobs:
           test -f docs/RaceDay-Database.sql
           test -f docs/CI-CD-Success.png
 
-      - name: Restore API dependencies
-        run: dotnet restore Part2/RaceDay.API/RaceDay.API.csproj
+      - name: Validate Part 3 documentation
+        shell: bash
+        run: |
+          test -f Part3/README.md
+          test -f Part3/RaceDay.MVC/RaceDay.MVC.csproj
 
-      - name: Build API
-        run: dotnet build Part2/RaceDay.API/RaceDay.API.csproj --configuration Release --no-restore
+      - name: Restore solution dependencies
+        run: dotnet restore Part2/RaceDay.sln
+
+      - name: Build complete solution
+        run: dotnet build Part2/RaceDay.sln --configuration Release --no-restore
 
       - name: Run unit tests
         run: dotnet test Part2/RaceDay.Tests/RaceDay.Tests.csproj --configuration Release --verbosity normal
