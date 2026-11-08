@@ -1,0 +1,98 @@
+
+@model List<RaceDay.MVC.Models.CategoryViewModel>
+
+@{
+    ViewData["Title"] = "Enrol in Event";
+    var raceEvent = ViewBag.Event as RaceDay.MVC.Models.EventViewModel;
+}
+
+<div class="container mt-4">
+    <h2>Enrol in Event</h2>
+
+    @if (raceEvent != null)
+    {
+        <div class="card mb-4">
+            <div class="card-body">
+                <h4>@raceEvent.Name</h4>
+                <p><strong>Date:</strong> @raceEvent.EventDate.ToString("dd MMM yyyy")</p>
+                <p><strong>Location:</strong> @raceEvent.Location</p>
+                <p><strong>Distance:</strong> @raceEvent.DistanceKm km</p>
+                <p><strong>Event type:</strong> @raceEvent.EventType</p>
+            </div>
+        </div>
+    }
+
+    @if (TempData["ErrorMessage"] != null)
+    {
+        <div class="alert alert-danger">@TempData["ErrorMessage"]</div>
+    }
+
+    @if (ViewBag.ErrorMessage != null)
+    {
+        <div class="alert alert-danger">@ViewBag.ErrorMessage</div>
+    }
+
+    <h4>Available Categories</h4>
+
+    @if (Model == null || !Model.Any())
+    {
+        <div class="alert alert-info">
+            No categories are available for this event yet.
+        </div>
+    }
+    else
+    {
+        <div class="row">
+            @foreach (var category in Model)
+            {
+                <div class="col-md-6 mb-3">
+                    <div class="card h-100">
+                        <div class="card-body">
+                            <h5>@category.Name</h5>
+                            <p><strong>Category type:</strong> @category.CategoryType</p>
+
+                            @if (category.CategoryType == "Age")
+                            {
+                                <p>
+                                    <strong>Age range:</strong>
+                                    @category.MinimumAge - @category.MaximumAge
+                                </p>
+                            }
+                            else
+                            {
+                                <p>
+                                    <strong>Distance:</strong>
+                                    @category.DistanceKm km
+                                </p>
+                            }
+
+                            <form asp-controller="Enrolments"
+                                  asp-action="Enrol"
+                                  method="post">
+                                @Html.AntiForgeryToken()
+
+                                <input type="hidden"
+                                       name="eventId"
+                                       value="@category.EventId" />
+
+                                <input type="hidden"
+                                       name="categoryId"
+                                       value="@category.Id" />
+
+                                <button type="submit" class="btn btn-success">
+                                    Enrol in This Category
+                                </button>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            }
+        </div>
+    }
+
+    <a asp-controller="Events"
+       asp-action="Index"
+       class="btn btn-secondary mt-3">
+        Back to Events
+    </a>
+</div>

@@ -1,0 +1,86 @@
+@{
+    ViewData["Title"] = "Participant Dashboard";
+}
+
+<div class="container">
+
+    <div class="p-5 mb-4 bg-dark text-white rounded-3 shadow">
+        <h1 class="display-5 fw-bold">
+            Welcome, @ViewBag.ParticipantName!
+        </h1>
+
+        <p class="fs-5">
+            Find your next challenge, enter a race and track your progress.
+        </p>
+    </div>
+
+    <h2 class="mb-4">Participant Dashboard</h2>
+
+    <div class="row g-4">
+
+        <div class="col-md-4">
+            <div class="card shadow h-100">
+                <div class="card-body">
+                    <h4 class="card-title">Upcoming Events</h4>
+                    <p class="card-text">
+                        Discover upcoming races and explore event details.
+                    </p>
+                    <a asp-controller="Events"
+                       asp-action="Index"
+                       class="btn btn-primary">
+                        Browse Events
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-4">
+            <div class="card shadow h-100">
+                <div class="card-body">
+                    <h4 class="card-title">My Enrolments</h4>
+                    <p class="card-text">
+                        View your registered races and enrolment status.
+                    </p>
+                    <a asp-controller="Enrolments"
+                       asp-action="MyEnrolments"
+                       class="btn btn-primary">
+                        My Enrolments
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-4">
+            <div class="card shadow h-100">
+                <div class="card-body">
+                    <h4 class="card-title">My Results</h4>
+                    <p class="card-text">
+                        Track your finishing positions and race times.
+                    </p>
+                    <a asp-controller="Results"
+                       asp-action="MyResults"
+                       class="btn btn-primary">
+                        View Results
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-4">
+            <div class="card shadow h-100">
+                <div class="card-body">
+                    <h4 class="card-title">My Profile</h4>
+                    <p class="card-text">
+                        View and update your personal information.
+                    </p>
+                    <a asp-controller="Profile"
+                       asp-action="Index"
+                       class="btn btn-primary">
+                        View Profile
+                    </a>
+                </div>
+            </div>
+        </div>
+
+    </div>
+</div>

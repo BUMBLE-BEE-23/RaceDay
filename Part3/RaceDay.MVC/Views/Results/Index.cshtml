@@ -1,0 +1,64 @@
+
+@model List<RaceDay.MVC.Models.EventViewModel>
+
+@{
+    ViewData["Title"] = "Race Results";
+}
+
+<div class="container mt-4">
+    <h2>Race Results Management</h2>
+
+    <p>Select an event to manage its participants' race results.</p>
+
+    @if (ViewBag.ErrorMessage != null)
+    {
+        <div class="alert alert-danger">
+            @ViewBag.ErrorMessage
+        </div>
+    }
+
+    @if (Model == null || !Model.Any())
+    {
+        <div class="alert alert-info">
+            No events are currently available.
+        </div>
+    }
+    else
+    {
+        <div class="row">
+            @foreach (var raceEvent in Model)
+            {
+                <div class="col-md-6 mb-3">
+                    <div class="card h-100 shadow-sm">
+                        <div class="card-body">
+                            <h5>@raceEvent.Name</h5>
+
+                            <p>
+                                <strong>Date:</strong>
+                                @raceEvent.EventDate.ToString("dd MMM yyyy")
+                            </p>
+
+                            <p>
+                                <strong>Location:</strong>
+                                @raceEvent.Location
+                            </p>
+
+                            <a asp-controller="Results"
+                               asp-action="ForEvent"
+                               asp-route-eventId="@raceEvent.Id"
+                               class="btn btn-primary">
+                                Manage Race Results
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            }
+        </div>
+    }
+
+    <a asp-controller="Organiser"
+       asp-action="Dashboard"
+       class="btn btn-secondary mt-3">
+        Back to Dashboard
+    </a>
+</div>

@@ -1,0 +1,103 @@
+
+@{
+    ViewData["Title"] = "Organiser Dashboard";
+}
+
+<div class="container">
+
+    <div class="p-5 mb-4 bg-dark text-white rounded-3 shadow">
+        <h1 class="display-5 fw-bold">
+            Welcome, @ViewBag.OrganiserName!
+        </h1>
+
+        <p class="fs-5">
+            Manage your races, participants and event results from one place.
+        </p>
+    </div>
+
+    <h2 class="mb-4">Organiser Dashboard</h2>
+
+    <div class="row g-4">
+
+        <div class="col-md-4">
+            <div class="card shadow h-100">
+                <div class="card-body">
+                    <h4 class="card-title">My Events</h4>
+                    <p class="card-text">
+                        Create, view, update and delete your race events.
+                    </p>
+                    <a asp-controller="Events"
+                       asp-action="Index"
+                       class="btn btn-primary">
+                        Manage Events
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-4">
+            <div class="card shadow h-100">
+                <div class="card-body">
+                    <h4 class="card-title">Categories</h4>
+                    <p class="card-text">
+                        Manage age groups and race distance categories for your events.
+                    </p>
+                    <a asp-controller="Events"
+                       asp-action="Index"
+                       class="btn btn-primary">
+                        Select Event Categories
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-4">
+            <div class="card shadow h-100">
+                <div class="card-body">
+                    <h4 class="card-title">Enrolments</h4>
+                    <p class="card-text">
+                        View participants and their event enrolments.
+                    </p>
+                    <a asp-controller="Enrolments"
+                       asp-action="Index"
+                       class="btn btn-primary">
+                        View Enrolments
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-4">
+            <div class="card shadow h-100">
+                <div class="card-body">
+                    <h4 class="card-title">Race Results</h4>
+                    <p class="card-text">
+                        Enter finishing positions and publish race results.
+                    </p>
+                    <a asp-controller="Results"
+                       asp-action="Index"
+                       class="btn btn-primary">
+                        Manage Results
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-4">
+            <div class="card shadow h-100">
+                <div class="card-body">
+                    <h4 class="card-title">My Profile</h4>
+                    <p class="card-text">
+                        View and update your organiser profile.
+                    </p>
+                    <a asp-controller="Profile"
+                       asp-action="Index"
+                       class="btn btn-primary">
+                        View Profile
+                    </a>
+                </div>
+            </div>
+        </div>
+
+    </div>
+</div>

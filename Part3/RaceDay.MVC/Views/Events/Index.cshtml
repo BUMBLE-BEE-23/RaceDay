@@ -1,0 +1,155 @@
+
+@model List<RaceDay.MVC.Models.EventViewModel>
+
+@{
+    ViewData["Title"] = "Upcoming Events";
+
+    bool isOrganiser = Context.Session.GetString("Role") == "Organiser";
+    bool isParticipant = Context.Session.GetString("Role") == "Participant";
+
+    int.TryParse(Context.Session.GetString("UserId"), out int currentUserId);
+}
+
+<div class="container mt-4">
+
+    <div class="p-4 mb-4 bg-dark text-white rounded">
+        <h1>Upcoming RaceDay Events</h1>
+        <p class="mb-0">
+            Discover running, walking and cycling events.
+        </p>
+    </div>
+
+    @if (isOrganiser)
+    {
+        <div class="mb-4">
+            <a asp-controller="Events"
+               asp-action="Create"
+               class="btn btn-success">
+                Create New Event
+            </a>
+        </div>
+    }
+
+    @if (TempData["SuccessMessage"] != null)
+    {
+        <div class="alert alert-success">
+            @TempData["SuccessMessage"]
+        </div>
+    }
+
+    @if (TempData["ErrorMessage"] != null)
+    {
+        <div class="alert alert-danger">
+            @TempData["ErrorMessage"]
+        </div>
+    }
+
+    @if (ViewBag.ErrorMessage != null)
+    {
+        <div class="alert alert-danger">
+            @ViewBag.ErrorMessage
+        </div>
+    }
+
+    @if (Model == null || !Model.Any())
+    {
+        <div class="alert alert-info">
+            No events are currently available.
+        </div>
+    }
+    else
+    {
+        <div class="row">
+
+            @foreach (var raceEvent in Model)
+            {
+                <div class="col-md-6 col-lg-4 mb-4">
+
+                    <div class="card h-100 shadow-sm">
+
+                        <div class="card-body">
+
+                            <span class="badge bg-primary mb-2">
+                                @raceEvent.EventType
+                            </span>
+
+                            <h5 class="card-title">
+                                @raceEvent.Name
+                            </h5>
+
+                            <p class="card-text">
+                                @raceEvent.Description
+                            </p>
+
+                            <hr />
+
+                            <p>
+                                <strong>Date:</strong>
+                                @raceEvent.EventDate.ToString("dd MMM yyyy")
+                            </p>
+
+                            <p>
+                                <strong>Location:</strong>
+                                @raceEvent.Location
+                            </p>
+
+                            <p>
+                                <strong>Distance:</strong>
+                                @raceEvent.DistanceKm km
+                            </p>
+
+                            <a asp-controller="Events"
+                               asp-action="Details"
+                               asp-route-id="@raceEvent.Id"
+                               class="btn btn-primary w-100 mb-2">
+                                View Event
+                            </a>
+
+                            @if (isParticipant)
+                            {
+                                <a asp-controller="Enrolments"
+                                   asp-action="Browse"
+                                   asp-route-eventId="@raceEvent.Id"
+                                   class="btn btn-success w-100 mb-2">
+                                    Enrol in This Event
+                                </a>
+                            }
+
+                            @if (isOrganiser)
+                            {
+                                <a asp-controller="Categories"
+                                   asp-action="Index"
+                                   asp-route-eventId="@raceEvent.Id"
+                                   class="btn btn-success w-100 mb-2">
+                                    Manage Categories
+                                </a>
+
+                                @if (raceEvent.OrganiserId == currentUserId)
+                                {
+                                    <a asp-controller="Events"
+                                       asp-action="Edit"
+                                       asp-route-id="@raceEvent.Id"
+                                       class="btn btn-warning w-100 mb-2">
+                                        Edit Event
+                                    </a>
+
+                                    <a asp-controller="Events"
+                                       asp-action="Delete"
+                                       asp-route-id="@raceEvent.Id"
+                                       class="btn btn-danger w-100 mb-2">
+                                        Delete Event
+                                    </a>
+                                }
+                            }
+
+                        </div>
+
+                    </div>
+
+                </div>
+            }
+
+        </div>
+    }
+
+</div>

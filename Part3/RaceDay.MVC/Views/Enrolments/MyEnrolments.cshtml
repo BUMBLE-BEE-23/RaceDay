@@ -1,0 +1,85 @@
+
+@model List<RaceDay.MVC.Models.EnrolmentViewModel>
+
+@{
+    ViewData["Title"] = "My Enrolments";
+}
+
+<div class="container mt-4">
+
+    <div class="p-4 mb-4 bg-dark text-white rounded-3 shadow">
+        <h1 class="display-6 fw-bold">My Enrolments</h1>
+        <p class="fs-5 mb-0">
+            View the races you have entered and your selected categories.
+        </p>
+    </div>
+
+    @if (ViewBag.ErrorMessage != null)
+    {
+        <div class="alert alert-danger">
+            @ViewBag.ErrorMessage
+        </div>
+    }
+
+    @if (Model == null || !Model.Any())
+    {
+        <div class="alert alert-info">
+            You have not enrolled in any races yet.
+            Visit Upcoming Events to find your next challenge!
+        </div>
+    }
+    else
+    {
+        <div class="card shadow">
+            <div class="card-header bg-primary text-white">
+                <h5 class="mb-0">My Registered Races</h5>
+            </div>
+
+            <div class="table-responsive">
+                <table class="table table-striped table-hover mb-0">
+                    <thead class="table-dark">
+                        <tr>
+                            <th>Event</th>
+                            <th>Category</th>
+                            <th>Enrolment Date</th>
+                            <th>Status</th>
+                        </tr>
+                    </thead>
+
+                    <tbody>
+                        @foreach (var enrolment in Model)
+                        {
+                            <tr>
+                                <td>@enrolment.EventName</td>
+                                <td>@enrolment.CategoryName</td>
+                                <td>
+                                    @enrolment.EnrolledUtc.ToLocalTime().ToString("dd MMM yyyy")
+                                </td>
+                                <td>
+                                    <span class="badge bg-success">
+                                        Registered
+                                    </span>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    }
+
+    <div class="mt-4">
+        <a asp-controller="Participant"
+           asp-action="Index"
+           class="btn btn-secondary">
+            Back to Dashboard
+        </a>
+
+        <a asp-controller="Events"
+           asp-action="Index"
+           class="btn btn-primary">
+            Browse Events
+        </a>
+    </div>
+
+</div>

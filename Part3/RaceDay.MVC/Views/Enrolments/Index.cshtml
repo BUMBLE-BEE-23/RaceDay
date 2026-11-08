@@ -1,0 +1,63 @@
+
+@model List<RaceDay.MVC.Models.EventViewModel>
+
+@{
+    ViewData["Title"] = "Event Enrolments";
+}
+
+<div class="container mt-4">
+    <h2>Event Enrolments</h2>
+    <p>Select one of your events to view its enrolled participants.</p>
+
+    @if (ViewBag.ErrorMessage != null)
+    {
+        <div class="alert alert-danger">
+            @ViewBag.ErrorMessage
+        </div>
+    }
+
+    @if (Model == null || !Model.Any())
+    {
+        <div class="alert alert-info">
+            No events are currently available.
+        </div>
+    }
+    else
+    {
+        <div class="row">
+            @foreach (var raceEvent in Model)
+            {
+                <div class="col-md-6 mb-3">
+                    <div class="card h-100">
+                        <div class="card-body">
+                            <h5 class="card-title">@raceEvent.Name</h5>
+
+                            <p>
+                                <strong>Date:</strong>
+                                @raceEvent.EventDate.ToString("dd MMM yyyy")
+                            </p>
+
+                            <p>
+                                <strong>Location:</strong>
+                                @raceEvent.Location
+                            </p>
+
+                            <a asp-controller="Enrolments"
+                               asp-action="ForEvent"
+                               asp-route-eventId="@raceEvent.Id"
+                               class="btn btn-primary">
+                                View Enrolled Participants
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            }
+        </div>
+    }
+
+    <a asp-controller="Organiser"
+       asp-action="Dashboard"
+       class="btn btn-secondary mt-3">
+        Back to Dashboard
+    </a>
+</div>

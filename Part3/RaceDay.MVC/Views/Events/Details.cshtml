@@ -1,0 +1,86 @@
+@model RaceDay.MVC.Models.EventViewModel
+
+@{
+    ViewData["Title"] = "Event Details";
+}
+
+<div class="container">
+
+    <a asp-controller="Events"
+       asp-action="Index"
+       class="btn btn-outline-secondary mb-4">
+        &larr; Back to Events
+    </a>
+
+    <div class="card shadow">
+
+        <div class="card-header bg-dark text-white p-4">
+            <span class="badge bg-primary mb-2">
+                @Model.EventType
+            </span>
+
+            <h1 class="fw-bold">@Model.Name</h1>
+        </div>
+
+        <div class="card-body p-4">
+
+            <h4>About This Race</h4>
+
+            <p class="mb-4">
+                @Model.Description
+            </p>
+
+            <hr />
+
+            <div class="row g-4">
+
+                <div class="col-md-6">
+                    <h6 class="text-muted">EVENT DATE</h6>
+                    <p class="fs-5">
+                        @Model.EventDate.ToString("dd MMMM yyyy HH:mm")
+                    </p>
+                </div>
+
+                <div class="col-md-6">
+                    <h6 class="text-muted">LOCATION</h6>
+                    <p class="fs-5">@Model.Location</p>
+                </div>
+
+                <div class="col-md-6">
+                    <h6 class="text-muted">DISTANCE</h6>
+                    <p class="fs-5">@Model.DistanceKm KM</p>
+                </div>
+
+                <div class="col-md-6">
+                    <h6 class="text-muted">EVENT TYPE</h6>
+                    <p class="fs-5">@Model.EventType</p>
+                </div>
+
+            </div>
+
+            <hr />
+
+            @if (Context.Session.GetString("Role") == "Participant")
+            {
+                <a asp-controller="Enrolments"
+                   asp-action="Create"
+                   asp-route-eventId="@Model.Id"
+                   class="btn btn-success btn-lg">
+                    Enrol in This Race
+                </a>
+            }
+
+            @if (Context.Session.GetString("Role") == "Organiser")
+            {
+                <a asp-controller="Events"
+                   asp-action="Edit"
+                   asp-route-id="@Model.Id"
+                   class="btn btn-primary">
+                    Edit Event
+                </a>
+            }
+
+        </div>
+    </div>
+
+</div>

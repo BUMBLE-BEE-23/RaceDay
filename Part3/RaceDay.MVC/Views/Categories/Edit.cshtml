@@ -1,0 +1,78 @@
+
+@model RaceDay.MVC.Models.CategoryViewModel
+
+@{
+    ViewData["Title"] = "Edit Category";
+}
+
+<div class="container mt-4">
+    <div class="card shadow">
+        <div class="card-header bg-warning">
+            <h2>Edit Race Category</h2>
+        </div>
+
+        <div class="card-body">
+
+            <form asp-action="Edit" asp-route-id="@Model.Id" method="post">
+                @Html.AntiForgeryToken()
+
+                <input type="hidden" asp-for="Id" />
+                <input type="hidden" asp-for="EventId" />
+
+                <div asp-validation-summary="All" class="text-danger mb-3"></div>
+
+                <div class="mb-3">
+                    <label asp-for="Name" class="form-label">Category Name</label>
+                    <input asp-for="Name" class="form-control" />
+                    <span asp-validation-for="Name" class="text-danger"></span>
+                </div>
+
+                <div class="mb-3">
+                    <label asp-for="CategoryType" class="form-label">Category Type</label>
+                    <select asp-for="CategoryType" class="form-select">
+                        <option value="Age">Age</option>
+                        <option value="Distance">Distance</option>
+                    </select>
+                    <span asp-validation-for="CategoryType" class="text-danger"></span>
+                </div>
+
+                <h5 class="mt-4">Age Category Limits</h5>
+
+                <div class="mb-3">
+                    <label asp-for="MinimumAge" class="form-label">Minimum Age</label>
+                    <input asp-for="MinimumAge" type="number" class="form-control" />
+                    <span asp-validation-for="MinimumAge" class="text-danger"></span>
+                </div>
+
+                <div class="mb-3">
+                    <label asp-for="MaximumAge" class="form-label">Maximum Age</label>
+                    <input asp-for="MaximumAge" type="number" class="form-control" />
+                    <span asp-validation-for="MaximumAge" class="text-danger"></span>
+                </div>
+
+                <h5 class="mt-4">Distance Category Limit</h5>
+
+                <div class="mb-3">
+                    <label asp-for="DistanceKm" class="form-label">Distance (KM)</label>
+                    <input asp-for="DistanceKm" type="number" step="0.1" class="form-control" />
+                    <span asp-validation-for="DistanceKm" class="text-danger"></span>
+                </div>
+
+                <button type="submit" class="btn btn-warning">
+                    Save Changes
+                </button>
+
+                <a asp-action="Index"
+                   asp-route-eventId="@Model.EventId"
+                   class="btn btn-secondary">
+                    Cancel
+                </a>
+
+            </form>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}

@@ -1,3 +1,4 @@
+
 using System.Security.Claims;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -64,7 +65,6 @@ public class EnrolmentsController(ApplicationDbContext db) : ControllerBase
         db.EventEnrolments.Add(item);
         await db.SaveChangesAsync();
 
-        // Build the response after querying the database.
         var details = await (
             from enrolment in db.EventEnrolments
             join ev in db.Events
@@ -127,6 +127,54 @@ public class EnrolmentsController(ApplicationDbContext db) : ControllerBase
             join participant in db.Users
                 on enrolment.ParticipantId equals participant.Id
             where ev.Id == eventId
+            select new
+            {
+                EnrolmentId = enrolment.Id,
+                EventId = ev.Id,
+                EventName = ev.Name,
+                CategoryId = cat.Id,
+                CategoryName = cat.Name,
+                ParticipantId = participant.Id,
+                ParticipantName = participant.FirstName + " " + participant.LastName,
+                enrolment.EnrolledUtc
+            }
+        ).ToListAsync();
+
+        var responses = details.Select(x => new EnrolmentResponse(
+            x.EnrolmentId,
+            x.EventId,
+            x.EventName,
+            x.CategoryId,
+            x.CategoryName,
+            x.ParticipantId,
+            x.ParticipantName,
+            x.EnrolledUtc
+        )).ToList();
+
+        return Ok(responses);
+    }
+
+    /// <summary>
+    /// Lists all enrolments belonging to the authenticated Participant.
+    /// </summary>
+    [HttpGet("enrolments/me")]
+    [Authorize(Roles = UserRoles.Participant)]
+    public async Task<ActionResult<IEnumerable<EnrolmentResponse>>> GetMyEnrolments()
+    {
+        var participantId = GetUserId();
+
+        if (participantId is null)
+            return Unauthorized();
+
+        var details = await (
+            from enrolment in db.EventEnrolments
+            join ev in db.Events
+                on enrolment.EventId equals ev.Id
+            join cat in db.Categories
+                on enrolment.CategoryId equals cat.Id
+            join participant in db.Users
+                on enrolment.ParticipantId equals participant.Id
+            where enrolment.ParticipantId == participantId.Value
             select new
             {
                 EnrolmentId = enrolment.Id,
