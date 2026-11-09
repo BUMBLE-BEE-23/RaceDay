@@ -1,3 +1,4 @@
+
 @model RaceDay.MVC.Models.EventViewModel
 
 @{
@@ -26,7 +27,8 @@
 
             <form asp-controller="Events"
                   asp-action="Create"
-                  method="post">
+                  method="post"
+                  enctype="multipart/form-data">
 
                 <div asp-validation-summary="All"
                      class="alert alert-danger">
@@ -81,7 +83,7 @@
                           class="text-danger"></span>
                 </div>
 
-                <div class="mb-4">
+                <div class="mb-3">
                     <label asp-for="EventType" class="form-label"></label>
                     <select asp-for="EventType" class="form-select">
                         <option value="">-- Select Event Type --</option>
@@ -91,6 +93,21 @@
                     </select>
                     <span asp-validation-for="EventType"
                           class="text-danger"></span>
+                </div>
+
+                <div class="mb-4">
+                    <label asp-for="BannerFile" class="form-label">
+                        Event Banner Image (Optional)
+                    </label>
+                    <input asp-for="BannerFile"
+                           type="file"
+                           class="form-control"
+                           accept=".jpg,.jpeg,.png,.webp" />
+                    <span asp-validation-for="BannerFile"
+                          class="text-danger"></span>
+                    <small class="text-muted">
+                        Accepted formats: JPG, JPEG, PNG and WebP. Maximum 5 MB.
+                    </small>
                 </div>
 
                 <button type="submit" class="btn btn-success btn-lg">

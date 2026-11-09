@@ -2,12 +2,14 @@
 using System;
 using System.Linq;
 using System.Collections.Generic;
+using System.IO;
 using System.Net;
 using System.Net.Http;
 using System.Net.Http.Json;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Hosting;
 using RaceDay.MVC.Models;
 using RaceDay.MVC.Services;
 
@@ -16,10 +18,24 @@ namespace RaceDay.MVC.Controllers;
 public class EventsController : Controller
 {
     private readonly RaceDayApiService _apiService;
+    private readonly IWebHostEnvironment _environment;
 
-    public EventsController(RaceDayApiService apiService)
+    private const long MaxBannerSize = 5 * 1024 * 1024;
+
+    private static readonly Dictionary<string, string> AllowedBannerTypes = new()
+    {
+        { ".jpg", "image/jpeg" },
+        { ".jpeg", "image/jpeg" },
+        { ".png", "image/png" },
+        { ".webp", "image/webp" }
+    };
+
+    public EventsController(
+        RaceDayApiService apiService,
+        IWebHostEnvironment environment)
     {
         _apiService = apiService;
+        _environment = environment;
     }
 
     private bool IsOrganiser()
@@ -27,7 +43,83 @@ public class EventsController : Controller
         return HttpContext.Session.GetString("Role") == "Organiser";
     }
 
-    // Display events and apply participant filters.
+    private bool ValidateBanner(IFormFile? file)
+    {
+        if (file == null || file.Length == 0)
+            return true;
+
+        if (file.Length > MaxBannerSize)
+        {
+            ModelState.AddModelError(
+                nameof(EventViewModel.BannerFile),
+                "The banner image cannot exceed 5 MB.");
+
+            return false;
+        }
+
+        var extension = Path.GetExtension(file.FileName).ToLowerInvariant();
+
+        if (!AllowedBannerTypes.TryGetValue(extension, out var expectedType) ||
+            !string.Equals(file.ContentType, expectedType, StringComparison.OrdinalIgnoreCase))
+        {
+            ModelState.AddModelError(
+                nameof(EventViewModel.BannerFile),
+                "Upload a valid JPG, JPEG, PNG or WebP image.");
+
+            return false;
+        }
+
+        return true;
+    }
+
+    private async Task<string> SaveBannerAsync(IFormFile file)
+    {
+        var webRoot = _environment.WebRootPath;
+
+        if (string.IsNullOrWhiteSpace(webRoot))
+            webRoot = Path.Combine(_environment.ContentRootPath, "wwwroot");
+
+        var uploadFolder = Path.Combine(webRoot, "uploads", "events");
+
+        Directory.CreateDirectory(uploadFolder);
+
+        var extension = Path.GetExtension(file.FileName).ToLowerInvariant();
+        var fileName = $"event_{Guid.NewGuid():N}{extension}";
+        var filePath = Path.Combine(uploadFolder, fileName);
+
+        await using var stream = new FileStream(filePath, FileMode.Create);
+        await file.CopyToAsync(stream);
+
+        return "/uploads/events/" + fileName;
+    }
+
+    private void DeleteBannerFile(string? bannerUrl)
+    {
+        if (string.IsNullOrWhiteSpace(bannerUrl) ||
+            !bannerUrl.StartsWith(
+                "/uploads/events/",
+                StringComparison.OrdinalIgnoreCase))
+        {
+            return;
+        }
+
+        var fileName = Path.GetFileName(bannerUrl);
+
+        if (string.IsNullOrWhiteSpace(fileName))
+            return;
+
+        var webRoot = _environment.WebRootPath;
+
+        if (string.IsNullOrWhiteSpace(webRoot))
+            webRoot = Path.Combine(_environment.ContentRootPath, "wwwroot");
+
+        var filePath = Path.Combine(
+            webRoot, "uploads", "events", fileName);
+
+        if (System.IO.File.Exists(filePath))
+            System.IO.File.Delete(filePath);
+    }
+
     [HttpGet]
     public async Task<IActionResult> Index(
         string? eventType,
@@ -54,8 +146,6 @@ public class EventsController : Controller
 
             var filteredEvents = events ?? new List<EventViewModel>();
 
-            // Participants only see upcoming events.
-            // Organisers can see all events.
             if (!IsOrganiser())
             {
                 filteredEvents = filteredEvents
@@ -63,7 +153,6 @@ public class EventsController : Controller
                     .ToList();
             }
 
-            // Filter by event type.
             if (!string.IsNullOrWhiteSpace(eventType))
             {
                 filteredEvents = filteredEvents
@@ -74,7 +163,6 @@ public class EventsController : Controller
                     .ToList();
             }
 
-            // Filter by location.
             if (!string.IsNullOrWhiteSpace(location))
             {
                 filteredEvents = filteredEvents
@@ -85,7 +173,6 @@ public class EventsController : Controller
                     .ToList();
             }
 
-            // Filter by event date.
             if (eventDate.HasValue)
             {
                 filteredEvents = filteredEvents
@@ -102,7 +189,6 @@ public class EventsController : Controller
         }
     }
 
-    // Display event details.
     [HttpGet]
     public async Task<IActionResult> Details(int id)
     {
@@ -128,7 +214,6 @@ public class EventsController : Controller
         }
     }
 
-    // Display Create form.
     [HttpGet]
     public IActionResult Create()
     {
@@ -138,13 +223,15 @@ public class EventsController : Controller
         return View(new EventViewModel());
     }
 
-    // Create event through API.
     [HttpPost]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> Create(EventViewModel model)
     {
         if (!IsOrganiser())
             return RedirectToAction("Login", "Account");
+
+        if (!ValidateBanner(model.BannerFile))
+            return View(model);
 
         if (!ModelState.IsValid)
             return View(model);
@@ -158,8 +245,16 @@ public class EventsController : Controller
             return View(model);
         }
 
+        string? savedBannerUrl = null;
+
         try
         {
+            if (model.BannerFile != null && model.BannerFile.Length > 0)
+            {
+                savedBannerUrl = await SaveBannerAsync(model.BannerFile);
+                model.BannerUrl = savedBannerUrl;
+            }
+
             var request = new
             {
                 model.Name,
@@ -167,7 +262,8 @@ public class EventsController : Controller
                 model.EventDate,
                 model.Location,
                 model.DistanceKm,
-                model.EventType
+                model.EventType,
+                model.BannerUrl
             };
 
             var response = await _apiService.SendAsync(
@@ -177,6 +273,8 @@ public class EventsController : Controller
 
             if (!response.IsSuccessStatusCode)
             {
+                DeleteBannerFile(savedBannerUrl);
+
                 ModelState.AddModelError(
                     string.Empty,
                     "The API could not create the event.");
@@ -190,15 +288,26 @@ public class EventsController : Controller
         }
         catch (HttpRequestException)
         {
+            DeleteBannerFile(savedBannerUrl);
+
             ModelState.AddModelError(
                 string.Empty,
                 "Unable to connect to RaceDay API.");
 
             return View(model);
         }
+        catch (IOException)
+        {
+            DeleteBannerFile(savedBannerUrl);
+
+            ModelState.AddModelError(
+                string.Empty,
+                "Unable to save the banner image.");
+
+            return View(model);
+        }
     }
 
-    // Display Edit form.
     [HttpGet]
     public async Task<IActionResult> Edit(int id)
     {
@@ -230,7 +339,6 @@ public class EventsController : Controller
         }
     }
 
-    // Update event through API.
     [HttpPost]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> Edit(int id, EventViewModel model)
@@ -240,6 +348,9 @@ public class EventsController : Controller
 
         if (id != model.Id)
             return BadRequest();
+
+        if (!ValidateBanner(model.BannerFile))
+            return View(model);
 
         if (!ModelState.IsValid)
             return View(model);
@@ -253,8 +364,33 @@ public class EventsController : Controller
             return View(model);
         }
 
+        string? savedBannerUrl = null;
+
         try
         {
+            var existingResponse = await _apiService.SendAsync(
+                HttpMethod.Get, $"api/events/{id}");
+
+            if (existingResponse.StatusCode == HttpStatusCode.NotFound)
+                return NotFound();
+
+            if (!existingResponse.IsSuccessStatusCode)
+                return StatusCode((int)existingResponse.StatusCode);
+
+            var existingEvent = await existingResponse.Content
+                .ReadFromJsonAsync<EventViewModel>();
+
+            if (existingEvent == null)
+                return NotFound();
+
+            model.BannerUrl = existingEvent.BannerUrl;
+
+            if (model.BannerFile != null && model.BannerFile.Length > 0)
+            {
+                savedBannerUrl = await SaveBannerAsync(model.BannerFile);
+                model.BannerUrl = savedBannerUrl;
+            }
+
             var request = new
             {
                 model.Name,
@@ -262,7 +398,8 @@ public class EventsController : Controller
                 model.EventDate,
                 model.Location,
                 model.DistanceKm,
-                model.EventType
+                model.EventType,
+                model.BannerUrl
             };
 
             var response = await _apiService.SendAsync(
@@ -271,13 +408,21 @@ public class EventsController : Controller
                 JsonContent.Create(request));
 
             if (response.StatusCode == HttpStatusCode.Forbidden)
+            {
+                DeleteBannerFile(savedBannerUrl);
                 return Forbid();
+            }
 
             if (response.StatusCode == HttpStatusCode.NotFound)
+            {
+                DeleteBannerFile(savedBannerUrl);
                 return NotFound();
+            }
 
             if (!response.IsSuccessStatusCode)
             {
+                DeleteBannerFile(savedBannerUrl);
+
                 ModelState.AddModelError(
                     string.Empty,
                     "Unable to update this event.");
@@ -285,21 +430,35 @@ public class EventsController : Controller
                 return View(model);
             }
 
+            if (savedBannerUrl != null)
+                DeleteBannerFile(existingEvent.BannerUrl);
+
             TempData["SuccessMessage"] = "Event updated successfully!";
 
             return RedirectToAction(nameof(Index));
         }
         catch (HttpRequestException)
         {
+            DeleteBannerFile(savedBannerUrl);
+
             ModelState.AddModelError(
                 string.Empty,
                 "Unable to connect to RaceDay API.");
 
             return View(model);
         }
+        catch (IOException)
+        {
+            DeleteBannerFile(savedBannerUrl);
+
+            ModelState.AddModelError(
+                string.Empty,
+                "Unable to save the banner image.");
+
+            return View(model);
+        }
     }
 
-    // Display Delete confirmation.
     [HttpGet]
     public async Task<IActionResult> Delete(int id)
     {
@@ -328,7 +487,6 @@ public class EventsController : Controller
         }
     }
 
-    // Delete event through API.
     [HttpPost]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> DeleteConfirmed(int id)
@@ -364,4 +522,3 @@ public class EventsController : Controller
         }
     }
 }
-

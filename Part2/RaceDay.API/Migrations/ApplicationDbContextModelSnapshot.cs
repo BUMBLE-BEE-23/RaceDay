@@ -68,6 +68,10 @@ namespace RaceDay.API.Migrations
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
 
+                    b.Property<string>("BannerUrl")
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
                     b.Property<string>("Description")
                         .IsRequired()
                         .HasMaxLength(2000)

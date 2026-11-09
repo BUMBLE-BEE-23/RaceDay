@@ -96,6 +96,7 @@ public class EventsController(ApplicationDbContext db) : ControllerBase
             Location = request.Location.Trim(),
             DistanceKm = request.DistanceKm,
             EventType = NormalizeType(request.EventType),
+            BannerUrl = request.BannerUrl,
             OrganiserId = organiserId.Value
         };
 
@@ -142,6 +143,7 @@ public class EventsController(ApplicationDbContext db) : ControllerBase
         item.Location = request.Location.Trim();
         item.DistanceKm = request.DistanceKm;
         item.EventType = NormalizeType(request.EventType);
+        item.BannerUrl = request.BannerUrl;
 
         await db.SaveChangesAsync();
 
@@ -198,5 +200,6 @@ public class EventsController(ApplicationDbContext db) : ControllerBase
             x.Location,
             x.DistanceKm,
             x.EventType,
-            x.OrganiserId);
+            x.OrganiserId,
+            x.BannerUrl);
 }

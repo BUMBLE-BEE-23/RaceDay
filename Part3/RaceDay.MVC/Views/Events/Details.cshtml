@@ -24,6 +24,16 @@
 
         <div class="card-body p-4">
 
+            @if (!string.IsNullOrWhiteSpace(Model.BannerUrl))
+            {
+                <div class="mb-4">
+                    <img src="@Model.BannerUrl"
+                         alt="@Model.Name event banner"
+                         class="img-fluid rounded shadow-sm w-100"
+                         style="max-height: 400px; object-fit: cover;" />
+                </div>
+            }
+
             <h4>About This Race</h4>
 
             <p class="mb-4">

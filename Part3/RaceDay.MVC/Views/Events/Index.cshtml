@@ -1,4 +1,3 @@
-
 @model List<RaceDay.MVC.Models.EventViewModel>
 
 @{
@@ -141,6 +140,14 @@
                 <div class="col-md-6 col-lg-4 mb-4">
 
                     <div class="card h-100 shadow-sm">
+
+                        @if (!string.IsNullOrWhiteSpace(raceEvent.BannerUrl))
+                        {
+                            <img src="@raceEvent.BannerUrl"
+                                 class="card-img-top"
+                                 alt="@raceEvent.Name event banner"
+                                 style="height: 200px; object-fit: cover;" />
+                        }
 
                         <div class="card-body">
 

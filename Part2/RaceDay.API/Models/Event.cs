@@ -1,3 +1,4 @@
+
 using System.ComponentModel.DataAnnotations;
 
 namespace RaceDay.API.Models;
@@ -22,6 +23,9 @@ public class Event
 
     [Required, MaxLength(20)]
     public string EventType { get; set; } = "Run";
+
+    [MaxLength(500)]
+    public string? BannerUrl { get; set; }
 
     public int OrganiserId { get; set; }
     public User? Organiser { get; set; }

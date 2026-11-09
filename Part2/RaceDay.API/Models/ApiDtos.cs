@@ -1,4 +1,3 @@
-
 using System.ComponentModel.DataAnnotations;
 
 namespace RaceDay.API.Models;
@@ -82,6 +81,9 @@ public class EventRequest
 
     [Required]
     public string EventType { get; set; } = string.Empty;
+
+    [MaxLength(500)]
+    public string? BannerUrl { get; set; }
 }
 
 public class CategoryRequest
@@ -131,7 +133,8 @@ public record EventResponse(
     string Location,
     decimal DistanceKm,
     string EventType,
-    int OrganiserId);
+    int OrganiserId,
+    string? BannerUrl);
 
 public record CategoryResponse(
     int Id,

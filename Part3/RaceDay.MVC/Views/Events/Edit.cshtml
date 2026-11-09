@@ -11,7 +11,7 @@
         </div>
 
         <div class="card-body">
-            <form asp-action="Edit" method="post">
+            <form asp-action="Edit" method="post" enctype="multipart/form-data">
                 @Html.AntiForgeryToken()
 
                 <input type="hidden" asp-for="Id" />
@@ -58,6 +58,40 @@
                         <option value="Cycle">Cycle</option>
                     </select>
                     <span asp-validation-for="EventType" class="text-danger"></span>
+                </div>
+
+                <hr />
+
+                <h5>Event Banner</h5>
+
+                @if (!string.IsNullOrWhiteSpace(Model.BannerUrl))
+                {
+                    <div class="mb-3">
+                        <p>Current banner:</p>
+                        <img src="@Model.BannerUrl"
+                             alt="Current event banner"
+                             class="img-fluid rounded"
+                             style="max-height: 250px;" />
+                    </div>
+                }
+                else
+                {
+                    <p class="text-muted">This event does not have a banner yet.</p>
+                }
+
+                <div class="mb-3">
+                    <label asp-for="BannerFile" class="form-label">
+                        Upload a new banner (optional)
+                    </label>
+                    <input asp-for="BannerFile"
+                           type="file"
+                           class="form-control"
+                           accept=".jpg,.jpeg,.png,.webp" />
+                    <span asp-validation-for="BannerFile" class="text-danger"></span>
+                    <small class="text-muted">
+                        Allowed formats: JPG, JPEG, PNG and WEBP. Maximum size: 5 MB.
+                        Leave this empty to keep the current banner.
+                    </small>
                 </div>
 
                 <button type="submit" class="btn btn-warning">Save Changes</button>
