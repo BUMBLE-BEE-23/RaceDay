@@ -1,5 +1,10 @@
+
 @{
     ViewData["Title"] = "Participant Dashboard";
+
+    var upcomingEvents = (int?)ViewBag.UpcomingEvents ?? 0;
+    var totalEnrolments = (int?)ViewBag.TotalEnrolments ?? 0;
+    var totalResults = (int?)ViewBag.TotalResults ?? 0;
 }
 
 <div class="container">
@@ -10,15 +15,59 @@
         </h1>
 
         <p class="fs-5">
-            Find your next challenge, enter a race and track your progress.
+            Discover your next challenge, manage your race entries
+            and track your sporting achievements.
         </p>
     </div>
 
-    <h2 class="mb-4">Participant Dashboard</h2>
+    @if (ViewBag.ErrorMessage != null)
+    {
+        <div class="alert alert-warning">
+            @ViewBag.ErrorMessage
+        </div>
+    }
+
+    <h2 class="mb-4">My RaceDay Overview</h2>
+
+    <div class="row g-4 mb-5">
+
+        <div class="col-md-4">
+            <div class="card bg-primary text-white shadow h-100">
+                <div class="card-body">
+                    <h5>Upcoming Events</h5>
+                    <h2 class="display-5">@upcomingEvents</h2>
+                    <p class="mb-0">Races available to explore</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-4">
+            <div class="card bg-success text-white shadow h-100">
+                <div class="card-body">
+                    <h5>My Enrolments</h5>
+                    <h2 class="display-5">@totalEnrolments</h2>
+                    <p class="mb-0">Races you have entered</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-4">
+            <div class="card bg-warning text-dark shadow h-100">
+                <div class="card-body">
+                    <h5>My Results</h5>
+                    <h2 class="display-5">@totalResults</h2>
+                    <p class="mb-0">Recorded race results</p>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <h2 class="mb-4">Participant Services</h2>
 
     <div class="row g-4">
 
-        <div class="col-md-4">
+        <div class="col-md-6 col-lg-3">
             <div class="card shadow h-100">
                 <div class="card-body">
                     <h4 class="card-title">Upcoming Events</h4>
@@ -34,23 +83,23 @@
             </div>
         </div>
 
-        <div class="col-md-4">
+        <div class="col-md-6 col-lg-3">
             <div class="card shadow h-100">
                 <div class="card-body">
                     <h4 class="card-title">My Enrolments</h4>
                     <p class="card-text">
-                        View your registered races and enrolment status.
+                        View your registered races and enrolment information.
                     </p>
                     <a asp-controller="Enrolments"
                        asp-action="MyEnrolments"
-                       class="btn btn-primary">
+                       class="btn btn-success">
                         My Enrolments
                     </a>
                 </div>
             </div>
         </div>
 
-        <div class="col-md-4">
+        <div class="col-md-6 col-lg-3">
             <div class="card shadow h-100">
                 <div class="card-body">
                     <h4 class="card-title">My Results</h4>
@@ -59,23 +108,23 @@
                     </p>
                     <a asp-controller="Results"
                        asp-action="MyResults"
-                       class="btn btn-primary">
+                       class="btn btn-warning">
                         View Results
                     </a>
                 </div>
             </div>
         </div>
 
-        <div class="col-md-4">
+        <div class="col-md-6 col-lg-3">
             <div class="card shadow h-100">
                 <div class="card-body">
                     <h4 class="card-title">My Profile</h4>
                     <p class="card-text">
-                        View and update your personal information.
+                        Update your personal information and profile picture.
                     </p>
                     <a asp-controller="Profile"
                        asp-action="Index"
-                       class="btn btn-primary">
+                       class="btn btn-dark">
                         View Profile
                     </a>
                 </div>
@@ -83,4 +132,5 @@
         </div>
 
     </div>
+
 </div>

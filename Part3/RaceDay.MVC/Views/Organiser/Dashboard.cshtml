@@ -1,6 +1,16 @@
 
+@model List<RaceDay.MVC.Models.EventViewModel>
+
 @{
     ViewData["Title"] = "Organiser Dashboard";
+
+    var enrolmentCounts =
+        ViewBag.EnrolmentCounts as Dictionary<int, int>
+        ?? new Dictionary<int, int>();
+
+    var totalEvents = (int?)ViewBag.TotalEvents ?? 0;
+    var totalEnrolments = (int?)ViewBag.TotalEnrolments ?? 0;
+    var upcomingEvents = (int?)ViewBag.UpcomingEvents ?? 0;
 }
 
 <div class="container">
@@ -15,7 +25,95 @@
         </p>
     </div>
 
-    <h2 class="mb-4">Organiser Dashboard</h2>
+    @if (ViewBag.ErrorMessage != null)
+    {
+        <div class="alert alert-warning">
+            @ViewBag.ErrorMessage
+        </div>
+    }
+
+    <h2 class="mb-4">Dashboard Overview</h2>
+
+    <div class="row g-4 mb-5">
+
+        <div class="col-md-4">
+            <div class="card bg-primary text-white shadow h-100">
+                <div class="card-body">
+                    <h5>Total Events</h5>
+                    <h2 class="display-5">@totalEvents</h2>
+                    <p class="mb-0">Your organised race events</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-4">
+            <div class="card bg-success text-white shadow h-100">
+                <div class="card-body">
+                    <h5>Total Enrolments</h5>
+                    <h2 class="display-5">@totalEnrolments</h2>
+                    <p class="mb-0">Participants enrolled in your events</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-4">
+            <div class="card bg-warning text-dark shadow h-100">
+                <div class="card-body">
+                    <h5>Upcoming Events</h5>
+                    <h2 class="display-5">@upcomingEvents</h2>
+                    <p class="mb-0">Events scheduled for the future</p>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <h2 class="mb-4">My Events and Enrolments</h2>
+
+    @if (Model == null || !Model.Any())
+    {
+        <div class="alert alert-info">
+            You have not created any events yet.
+            Select Manage Events below to create your first race.
+        </div>
+    }
+    else
+    {
+        <div class="table-responsive mb-5">
+            <table class="table table-striped table-hover shadow-sm">
+                <thead class="table-dark">
+                    <tr>
+                        <th>Event Name</th>
+                        <th>Event Date</th>
+                        <th>Location</th>
+                        <th>Event Type</th>
+                        <th>Enrolments</th>
+                    </tr>
+                </thead>
+
+                <tbody>
+                    @foreach (var raceEvent in Model)
+                    {
+                        <tr>
+                            <td>@raceEvent.Name</td>
+                            <td>@raceEvent.EventDate.ToString("dd MMM yyyy HH:mm")</td>
+                            <td>@raceEvent.Location</td>
+                            <td>@raceEvent.EventType</td>
+                            <td>
+                                <span class="badge bg-primary">
+                                    @(enrolmentCounts.ContainsKey(raceEvent.Id)
+                                        ? enrolmentCounts[raceEvent.Id]
+                                        : 0)
+                                </span>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    }
+
+    <h2 class="mb-4">Organiser Management</h2>
 
     <div class="row g-4">
 

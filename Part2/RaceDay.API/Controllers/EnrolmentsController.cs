@@ -1,4 +1,3 @@
-
 using System.Security.Claims;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -14,6 +13,7 @@ public class EnrolmentsController(ApplicationDbContext db) : ControllerBase
 {
     /// <summary>
     /// Enrols the authenticated Participant in an event and selected category.
+    /// New enrolments automatically receive Pending status.
     /// </summary>
     [HttpPost("enrolments")]
     [Authorize(Roles = UserRoles.Participant)]
@@ -59,7 +59,8 @@ public class EnrolmentsController(ApplicationDbContext db) : ControllerBase
         {
             ParticipantId = participantId.Value,
             EventId = request.EventId,
-            CategoryId = request.CategoryId
+            CategoryId = request.CategoryId,
+            Status = "Pending"
         };
 
         db.EventEnrolments.Add(item);
@@ -67,12 +68,9 @@ public class EnrolmentsController(ApplicationDbContext db) : ControllerBase
 
         var details = await (
             from enrolment in db.EventEnrolments
-            join ev in db.Events
-                on enrolment.EventId equals ev.Id
-            join cat in db.Categories
-                on enrolment.CategoryId equals cat.Id
-            join participant in db.Users
-                on enrolment.ParticipantId equals participant.Id
+            join ev in db.Events on enrolment.EventId equals ev.Id
+            join cat in db.Categories on enrolment.CategoryId equals cat.Id
+            join participant in db.Users on enrolment.ParticipantId equals participant.Id
             where enrolment.Id == item.Id
             select new
             {
@@ -83,7 +81,8 @@ public class EnrolmentsController(ApplicationDbContext db) : ControllerBase
                 CategoryName = cat.Name,
                 ParticipantId = participant.Id,
                 ParticipantName = participant.FirstName + " " + participant.LastName,
-                enrolment.EnrolledUtc
+                enrolment.EnrolledUtc,
+                enrolment.Status
             }
         ).SingleAsync();
 
@@ -95,7 +94,8 @@ public class EnrolmentsController(ApplicationDbContext db) : ControllerBase
             details.CategoryName,
             details.ParticipantId,
             details.ParticipantName,
-            details.EnrolledUtc
+            details.EnrolledUtc,
+            details.Status
         );
 
         return Created($"/api/events/{item.EventId}/enrolments", response);
@@ -106,8 +106,7 @@ public class EnrolmentsController(ApplicationDbContext db) : ControllerBase
     /// </summary>
     [HttpGet("events/{eventId:int}/enrolments")]
     [Authorize(Roles = UserRoles.Organiser)]
-    public async Task<ActionResult<IEnumerable<EnrolmentResponse>>> GetForEvent(
-        int eventId)
+    public async Task<ActionResult<IEnumerable<EnrolmentResponse>>> GetForEvent(int eventId)
     {
         var eventItem = await db.Events
             .SingleOrDefaultAsync(x => x.Id == eventId);
@@ -120,12 +119,9 @@ public class EnrolmentsController(ApplicationDbContext db) : ControllerBase
 
         var details = await (
             from enrolment in db.EventEnrolments
-            join ev in db.Events
-                on enrolment.EventId equals ev.Id
-            join cat in db.Categories
-                on enrolment.CategoryId equals cat.Id
-            join participant in db.Users
-                on enrolment.ParticipantId equals participant.Id
+            join ev in db.Events on enrolment.EventId equals ev.Id
+            join cat in db.Categories on enrolment.CategoryId equals cat.Id
+            join participant in db.Users on enrolment.ParticipantId equals participant.Id
             where ev.Id == eventId
             select new
             {
@@ -136,7 +132,8 @@ public class EnrolmentsController(ApplicationDbContext db) : ControllerBase
                 CategoryName = cat.Name,
                 ParticipantId = participant.Id,
                 ParticipantName = participant.FirstName + " " + participant.LastName,
-                enrolment.EnrolledUtc
+                enrolment.EnrolledUtc,
+                enrolment.Status
             }
         ).ToListAsync();
 
@@ -148,7 +145,8 @@ public class EnrolmentsController(ApplicationDbContext db) : ControllerBase
             x.CategoryName,
             x.ParticipantId,
             x.ParticipantName,
-            x.EnrolledUtc
+            x.EnrolledUtc,
+            x.Status
         )).ToList();
 
         return Ok(responses);
@@ -168,12 +166,9 @@ public class EnrolmentsController(ApplicationDbContext db) : ControllerBase
 
         var details = await (
             from enrolment in db.EventEnrolments
-            join ev in db.Events
-                on enrolment.EventId equals ev.Id
-            join cat in db.Categories
-                on enrolment.CategoryId equals cat.Id
-            join participant in db.Users
-                on enrolment.ParticipantId equals participant.Id
+            join ev in db.Events on enrolment.EventId equals ev.Id
+            join cat in db.Categories on enrolment.CategoryId equals cat.Id
+            join participant in db.Users on enrolment.ParticipantId equals participant.Id
             where enrolment.ParticipantId == participantId.Value
             select new
             {
@@ -184,7 +179,8 @@ public class EnrolmentsController(ApplicationDbContext db) : ControllerBase
                 CategoryName = cat.Name,
                 ParticipantId = participant.Id,
                 ParticipantName = participant.FirstName + " " + participant.LastName,
-                enrolment.EnrolledUtc
+                enrolment.EnrolledUtc,
+                enrolment.Status
             }
         ).ToListAsync();
 
@@ -196,10 +192,62 @@ public class EnrolmentsController(ApplicationDbContext db) : ControllerBase
             x.CategoryName,
             x.ParticipantId,
             x.ParticipantName,
-            x.EnrolledUtc
+            x.EnrolledUtc,
+            x.Status
         )).ToList();
 
         return Ok(responses);
+    }
+
+    /// <summary>
+    /// Allows an Organiser to confirm or cancel enrolments for their own events.
+    /// </summary>
+    [HttpPut("enrolments/{enrolmentId:int}/status")]
+    [Authorize(Roles = UserRoles.Organiser)]
+    public async Task<IActionResult> UpdateStatus(
+        int enrolmentId,
+        [FromBody] string status)
+    {
+        if (string.IsNullOrWhiteSpace(status))
+        {
+            return BadRequest(new { message = "A status is required." });
+        }
+
+        status = status.Trim();
+
+        if (!status.Equals("Confirmed", StringComparison.OrdinalIgnoreCase) &&
+            !status.Equals("Cancelled", StringComparison.OrdinalIgnoreCase))
+        {
+            return BadRequest(new
+            {
+                message = "Status must be Confirmed or Cancelled."
+            });
+        }
+
+        var enrolment = await db.EventEnrolments
+            .Include(x => x.Event)
+            .SingleOrDefaultAsync(x => x.Id == enrolmentId);
+
+        if (enrolment is null)
+            return NotFound(new { message = "Enrolment not found." });
+
+        if (!Owns(enrolment.Event.OrganiserId))
+            return Forbid();
+
+        enrolment.Status = status.Equals(
+            "Confirmed",
+            StringComparison.OrdinalIgnoreCase)
+                ? "Confirmed"
+                : "Cancelled";
+
+        await db.SaveChangesAsync();
+
+        return Ok(new
+        {
+            message = "Enrolment status updated successfully.",
+            enrolmentId = enrolment.Id,
+            status = enrolment.Status
+        });
     }
 
     private int? GetUserId() =>

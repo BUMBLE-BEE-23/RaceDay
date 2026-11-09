@@ -125,6 +125,13 @@ namespace RaceDay.API.Migrations
                     b.Property<int>("ParticipantId")
                         .HasColumnType("int");
 
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)")
+                        .HasDefaultValue("Pending");
+
                     b.HasKey("Id");
 
                     b.HasIndex("CategoryId");

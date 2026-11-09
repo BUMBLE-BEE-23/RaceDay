@@ -1,4 +1,3 @@
-
 using System.Net;
 using System.Net.Http.Json;
 using Microsoft.AspNetCore.Mvc;
@@ -72,6 +71,44 @@ public class EnrolmentsController : Controller
         ViewBag.EventId = eventId;
 
         return View(enrolments);
+    }
+
+    // ORGANISER: Confirm or cancel an enrolment.
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> UpdateStatus(
+        int enrolmentId,
+        int eventId,
+        string status)
+    {
+        if (!IsOrganiser())
+            return RedirectToAction("Login", "Account");
+
+        if (status != "Confirmed" && status != "Cancelled")
+        {
+            TempData["ErrorMessage"] = "Invalid enrolment status.";
+            return RedirectToAction(nameof(ForEvent), new { eventId });
+        }
+
+        var response = await _apiService.SendAsync(
+            HttpMethod.Put,
+            $"api/enrolments/{enrolmentId}/status",
+            JsonContent.Create(status));
+
+        if (response.IsSuccessStatusCode)
+        {
+            TempData["SuccessMessage"] =
+                $"Enrolment successfully {status.ToLowerInvariant()}.";
+        }
+        else
+        {
+            var apiError = await response.Content.ReadAsStringAsync();
+
+            TempData["ErrorMessage"] =
+                $"Unable to update enrolment. API Error ({(int)response.StatusCode}): {apiError}";
+        }
+
+        return RedirectToAction(nameof(ForEvent), new { eventId });
     }
 
     // PARTICIPANT: Browse categories before enrolling in an event.

@@ -1,4 +1,3 @@
-
 @model List<RaceDay.MVC.Models.EnrolmentViewModel>
 
 @{
@@ -49,6 +48,13 @@
                     <tbody>
                         @foreach (var enrolment in Model)
                         {
+                            var statusClass = enrolment.Status switch
+                            {
+                                "Confirmed" => "bg-success",
+                                "Cancelled" => "bg-danger",
+                                _ => "bg-warning text-dark"
+                            };
+
                             <tr>
                                 <td>@enrolment.EventName</td>
                                 <td>@enrolment.CategoryName</td>
@@ -56,8 +62,8 @@
                                     @enrolment.EnrolledUtc.ToLocalTime().ToString("dd MMM yyyy")
                                 </td>
                                 <td>
-                                    <span class="badge bg-success">
-                                        Registered
+                                    <span class="badge @statusClass">
+                                        @enrolment.Status
                                     </span>
                                 </td>
                             </tr>

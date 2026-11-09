@@ -12,7 +12,7 @@
 
 <div class="container mt-4">
 
-    <div class="p-4 mb-4 bg-dark text-white rounded">
+    <div class="p-4 mb-4 bg-dark text-white rounded shadow">
         <h1>Upcoming RaceDay Events</h1>
         <p class="mb-0">
             Discover running, walking and cycling events.
@@ -51,10 +51,85 @@
         </div>
     }
 
+    <!-- Event filters -->
+    <div class="card shadow-sm mb-4">
+        <div class="card-header bg-primary text-white">
+            <h4 class="mb-0">Find Your Race</h4>
+        </div>
+
+        <div class="card-body">
+            <form asp-controller="Events"
+                  asp-action="Index"
+                  method="get">
+
+                <div class="row g-3">
+
+                    <div class="col-md-4">
+                        <label class="form-label">Event Type</label>
+
+                        <select name="eventType" class="form-select">
+                            <option value="">All Event Types</option>
+
+                            <option value="Run"
+                                    selected="@(ViewBag.SelectedEventType as string == "Run")">
+                                Run
+                            </option>
+
+                            <option value="Walk"
+                                    selected="@(ViewBag.SelectedEventType as string == "Walk")">
+                                Walk
+                            </option>
+
+                            <option value="Cycle"
+                                    selected="@(ViewBag.SelectedEventType as string == "Cycle")">
+                                Cycle
+                            </option>
+                        </select>
+                    </div>
+
+                    <div class="col-md-4">
+                        <label class="form-label">Location</label>
+
+                        <input type="text"
+                               name="location"
+                               class="form-control"
+                               placeholder="Enter a location"
+                               value="@ViewBag.SelectedLocation" />
+                    </div>
+
+                    <div class="col-md-4">
+                        <label class="form-label">Event Date</label>
+
+                        <input type="date"
+                               name="eventDate"
+                               class="form-control"
+                               value="@ViewBag.SelectedEventDate" />
+                    </div>
+
+                </div>
+
+                <div class="mt-3">
+                    <button type="submit" class="btn btn-primary">
+                        <i class="bi bi-search"></i> Apply Filters
+                    </button>
+
+                    <a asp-controller="Events"
+                       asp-action="Index"
+                       class="btn btn-outline-secondary">
+                        Clear Filters
+                    </a>
+                </div>
+
+            </form>
+        </div>
+    </div>
+
+    <h3 class="mb-3">Available Events</h3>
+
     @if (Model == null || !Model.Any())
     {
         <div class="alert alert-info">
-            No events are currently available.
+            No events match your filters. Try changing your search.
         </div>
     }
     else

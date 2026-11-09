@@ -1,9 +1,11 @@
+
 using Microsoft.EntityFrameworkCore;
 using RaceDay.API.Models;
 
 namespace RaceDay.API.Data;
 
-public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options) : DbContext(options)
+public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options)
+    : DbContext(options)
 {
     public DbSet<User> Users => Set<User>();
     public DbSet<Event> Events => Set<Event>();
@@ -53,17 +55,32 @@ public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options
             .HasForeignKey(x => x.CategoryId)
             .OnDelete(DeleteBehavior.Restrict);
 
+        // Configure enrolment status.
+        modelBuilder.Entity<EventEnrolment>()
+            .Property(x => x.Status)
+            .HasMaxLength(20)
+            .IsRequired()
+            .HasDefaultValue("Pending");
+
         modelBuilder.Entity<Result>()
             .HasOne(x => x.EventEnrolment)
             .WithOne(x => x.Result)
             .HasForeignKey<Result>(x => x.EventEnrolmentId)
             .OnDelete(DeleteBehavior.Cascade);
 
-        modelBuilder.Entity<User>().Property(x => x.Role).HasMaxLength(20).IsRequired();
-        modelBuilder.Entity<Event>().Property(x => x.EventType).HasMaxLength(20).IsRequired();
+        modelBuilder.Entity<User>()
+            .Property(x => x.Role)
+            .HasMaxLength(20)
+            .IsRequired();
+
         modelBuilder.Entity<Event>()
-    .Property(x => x.DistanceKm)
-    .HasPrecision(6, 2);
+            .Property(x => x.EventType)
+            .HasMaxLength(20)
+            .IsRequired();
+
+        modelBuilder.Entity<Event>()
+            .Property(x => x.DistanceKm)
+            .HasPrecision(6, 2);
 
         modelBuilder.Entity<Category>()
             .Property(x => x.DistanceKm)

@@ -12,7 +12,9 @@ namespace RaceDay.API.Controllers;
 [Route("api/events")]
 public class EventsController(ApplicationDbContext db) : ControllerBase
 {
-    /// <summary>Lists events in date order. Public endpoint.</summary>
+    /// <summary>
+    /// Lists all events. Public endpoint.
+    /// </summary>
     [HttpGet]
     [ProducesResponseType(typeof(IEnumerable<EventResponse>), StatusCodes.Status200OK)]
     public async Task<ActionResult<IEnumerable<EventResponse>>> GetEvents()
@@ -25,7 +27,33 @@ public class EventsController(ApplicationDbContext db) : ControllerBase
         return Ok(events.Select(ToResponse));
     }
 
-    /// <summary>Gets one event by ID. Public endpoint.</summary>
+    /// <summary>
+    /// Lists only events belonging to the authenticated Organiser.
+    /// </summary>
+    [HttpGet("mine")]
+    [Authorize(Roles = UserRoles.Organiser)]
+    [ProducesResponseType(typeof(IEnumerable<EventResponse>), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    public async Task<ActionResult<IEnumerable<EventResponse>>> GetMyEvents()
+    {
+        var organiserId = GetUserId();
+
+        if (organiserId is null)
+            return Unauthorized();
+
+        var events = await db.Events
+            .AsNoTracking()
+            .Where(x => x.OrganiserId == organiserId.Value)
+            .OrderBy(x => x.EventDate)
+            .ToListAsync();
+
+        return Ok(events.Select(ToResponse));
+    }
+
+    /// <summary>
+    /// Gets one event by ID. Public endpoint.
+    /// </summary>
     [HttpGet("{id:int}")]
     [ProducesResponseType(typeof(EventResponse), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
@@ -38,7 +66,9 @@ public class EventsController(ApplicationDbContext db) : ControllerBase
         return item is null ? NotFound() : Ok(ToResponse(item));
     }
 
-    /// <summary>Creates an event for the authenticated Organiser.</summary>
+    /// <summary>
+    /// Creates an event for the authenticated Organiser.
+    /// </summary>
     [HttpPost]
     [Authorize(Roles = UserRoles.Organiser)]
     [ProducesResponseType(typeof(EventResponse), StatusCodes.Status201Created)]
@@ -54,6 +84,7 @@ public class EventsController(ApplicationDbContext db) : ControllerBase
             });
 
         var organiserId = GetUserId();
+
         if (organiserId is null)
             return Unauthorized();
 
@@ -77,7 +108,9 @@ public class EventsController(ApplicationDbContext db) : ControllerBase
             ToResponse(item));
     }
 
-    /// <summary>Updates an event owned by the authenticated Organiser.</summary>
+    /// <summary>
+    /// Updates an event owned by the authenticated Organiser.
+    /// </summary>
     [HttpPut("{id:int}")]
     [Authorize(Roles = UserRoles.Organiser)]
     [ProducesResponseType(typeof(EventResponse), StatusCodes.Status200OK)]
@@ -115,7 +148,9 @@ public class EventsController(ApplicationDbContext db) : ControllerBase
         return Ok(ToResponse(item));
     }
 
-    /// <summary>Deletes an event owned by the authenticated Organiser.</summary>
+    /// <summary>
+    /// Deletes an event owned by the authenticated Organiser.
+    /// </summary>
     [HttpDelete("{id:int}")]
     [Authorize(Roles = UserRoles.Organiser)]
     [ProducesResponseType(StatusCodes.Status204NoContent)]

@@ -150,7 +150,8 @@ public record EnrolmentResponse(
     string CategoryName,
     int ParticipantId,
     string ParticipantName,
-    DateTime EnrolledUtc);
+    DateTime EnrolledUtc,
+    string Status);
 
 public record ResultResponse(
     int Id,

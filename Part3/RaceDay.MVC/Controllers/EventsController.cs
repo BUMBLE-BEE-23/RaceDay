@@ -1,6 +1,13 @@
+
+using System;
+using System.Linq;
+using System.Collections.Generic;
 using System.Net;
+using System.Net.Http;
 using System.Net.Http.Json;
+using System.Threading.Tasks;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Http;
 using RaceDay.MVC.Models;
 using RaceDay.MVC.Services;
 
@@ -20,10 +27,17 @@ public class EventsController : Controller
         return HttpContext.Session.GetString("Role") == "Organiser";
     }
 
-    // Display all events.
+    // Display events and apply participant filters.
     [HttpGet]
-    public async Task<IActionResult> Index()
+    public async Task<IActionResult> Index(
+        string? eventType,
+        string? location,
+        DateTime? eventDate)
     {
+        ViewBag.SelectedEventType = eventType;
+        ViewBag.SelectedLocation = location;
+        ViewBag.SelectedEventDate = eventDate?.ToString("yyyy-MM-dd");
+
         try
         {
             var response = await _apiService.SendAsync(
@@ -38,7 +52,48 @@ public class EventsController : Controller
             var events = await response.Content
                 .ReadFromJsonAsync<List<EventViewModel>>();
 
-            return View(events ?? new List<EventViewModel>());
+            var filteredEvents = events ?? new List<EventViewModel>();
+
+            // Participants only see upcoming events.
+            // Organisers can see all events.
+            if (!IsOrganiser())
+            {
+                filteredEvents = filteredEvents
+                    .Where(x => x.EventDate.Date >= DateTime.Today)
+                    .ToList();
+            }
+
+            // Filter by event type.
+            if (!string.IsNullOrWhiteSpace(eventType))
+            {
+                filteredEvents = filteredEvents
+                    .Where(x => string.Equals(
+                        x.EventType,
+                        eventType,
+                        StringComparison.OrdinalIgnoreCase))
+                    .ToList();
+            }
+
+            // Filter by location.
+            if (!string.IsNullOrWhiteSpace(location))
+            {
+                filteredEvents = filteredEvents
+                    .Where(x => !string.IsNullOrEmpty(x.Location) &&
+                        x.Location.Contains(
+                            location,
+                            StringComparison.OrdinalIgnoreCase))
+                    .ToList();
+            }
+
+            // Filter by event date.
+            if (eventDate.HasValue)
+            {
+                filteredEvents = filteredEvents
+                    .Where(x => x.EventDate.Date == eventDate.Value.Date)
+                    .ToList();
+            }
+
+            return View(filteredEvents);
         }
         catch (HttpRequestException)
         {
@@ -216,9 +271,7 @@ public class EventsController : Controller
                 JsonContent.Create(request));
 
             if (response.StatusCode == HttpStatusCode.Forbidden)
-            {
                 return Forbid();
-            }
 
             if (response.StatusCode == HttpStatusCode.NotFound)
                 return NotFound();
@@ -311,3 +364,4 @@ public class EventsController : Controller
         }
     }
 }
+
